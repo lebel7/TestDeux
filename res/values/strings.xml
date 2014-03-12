@@ -23,9 +23,15 @@
     <string name="defaultLabelTextLorem">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</string>
     <string name="alert_exploded">For some reason this code has exploded please alert your IT staff</string>
     <string name="image_description">shows image of the barcode</string>
-    <string name="hint_entername">Enter Name Here</string>
+    <string name="hint_enterbin">Enter BinNo Here</string>
 
     <string name="DEV_OPEN_ERR">Device open failed！Software will quit！</string>
     <string name="DIA_ALERT">Warning！</string>
     <string name="DIA_CHECK">Confirm</string>
+    <array name="ENDPOINT">
+        <item name="The2s">20:4e:7f:87:8f:a0</item>
+        <item name="AmazonDispactch">20:4e:7f:87:61:60</item>
+        <item name="The4s">20:4e:7f:87:58:00</item>
+        <item name="BackStock8">20:4e:7f:87:4d:e0</item>
+    </array>
 </resources>

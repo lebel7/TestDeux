@@ -48,6 +48,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:contentDescription="@string/img_detail_center"
+                        android:scaleType="fitXY"
                         android:src="@drawable/nopic" />
 
                 <LinearLayout
@@ -65,24 +66,30 @@
                             android:layout_marginTop="0dp"
                             android:layout_weight="1"
                             android:gravity="center"
+                            android:maxLines="4"
+                            android:singleLine="false"
                             android:text="@string/defaultLabelText"
                             android:textColor="#957700"
                             android:textColorHint="#957700"
-                            android:textSize="18sp" />
+                            android:textSize="18sp"
+                            android:width="0dip"/>
 
                     <TextView
                             android:id="@+id/txtv_Title"
-                            android:layout_width="match_parent"
+                            android:layout_width="fill_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginLeft="@dimen/activity_vertical_margin"
                             android:layout_marginTop="0dp"
                             android:layout_weight="1"
                             android:gravity="center"
+                            android:maxLines="4"
+                            android:singleLine="false"
                             android:text="@string/defaultLabelText"
                             android:textColor="#6699FF"
                             android:textColorHint="#6699FF"
                             android:textSize="14sp"
-                            android:textStyle="italic|bold" />
+                            android:textStyle="italic|bold"
+                            android:width="0dip"/>
                 </LinearLayout>
             </LinearLayout>
 
@@ -128,12 +135,14 @@
 
                     <TextView
                             android:id="@+id/txtvShortDesc"
-                            android:layout_width="match_parent"
+                            android:layout_width="fill_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginLeft="@dimen/activity_vertical_margin"
                             android:layout_marginRight="@dimen/activity_vertical_margin"
                             android:layout_marginTop="5dp"
+                            android:singleLine="false"
                             android:maxLines="4"
+                            android:width="0dp"
                             android:text="@string/defaultLabelTextLorem" />
                 </LinearLayout>
 
@@ -332,7 +341,7 @@
                     android:orientation="horizontal" >
 
                 <TextView
-                        android:id="@+id/lblScanBy"
+                        android:id="@+id/lblOriginatedBin"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginLeft="@dimen/activity_vertical_margin"
@@ -347,8 +356,9 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:ems="10"
+                        android:maxLength="6"
                         android:inputType="textPersonName"
-                        android:hint="@string/hint_entername" >
+                        android:hint="@string/hint_enterbin" >
 
 
                 </EditText>

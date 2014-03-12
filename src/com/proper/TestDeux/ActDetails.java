@@ -5,11 +5,22 @@ import java.io.IOException;
 import java.io.InputStream;
 //import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
+import android.app.DownloadManager;
+import android.content.*;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pManager;
+import android.util.Log;
 import com.proper.TestDeux.data.Product;
 import com.proper.TestDeux.data.ScanTest;
 import org.codehaus.jackson.JsonGenerationException;
@@ -30,8 +41,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Color;
@@ -47,14 +56,14 @@ import android.widget.TextView;
 /**
  * Created by Lebel on 13/02/14.
  */
-public class ActDetails extends Activity {
+public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
     //private TextView txtBarcode;
     private LetterSpacingTextView txtBarcode;
     private ImageView mImageView;
     private Bitmap mBitmap = null;
     private long startTime;
     private long timeElapsed;
-    private EditText txtScanBy;
+    private EditText txtOriginatedBin;
     private Button btnSubmit;
     private ScanTest currentItem;
     private static final int MSG_BCODE_STARTING = 22;
@@ -64,15 +73,29 @@ public class ActDetails extends Activity {
     private boolean hasBcRan = false;
     private int bcRunCount = 0;
     private ScanTest recentlySavedScan = null;
+    private int size = 0;
+    private  int currentChannel = 0;
+    private String endPointLocation = "";
+    private List<ScanResult> results;
+    private WifiManager wifi;
+    private WifiReceiver wifiRec;
+    private int[] channelsFrequency = {0,2412,2417,2422,2427,2432,2437,2442,2447,2452,2457,2462,2467,2472,2484};
+    private final String ENDPOINT_THE2S = "20:4e:7f:87:8f:a0";
+    private final String ENDPOINT_AMAZONDISPATCH = "20:4e:7f:87:61:60";
+    private final String ENDPOINT_THE4S = "20:4e:7f:87:58:00";
+    private final String ENDPOINT_BACKSTOCK8 = "20:4e:7f:87:4d:e0";
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.lyt_details);
 
+        wifi = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+        wifiRec = new WifiReceiver();
+        registerReceiver(wifiRec, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         startTime = new Date().getTime();
         //txtBarcode = (TextView) findViewById(R.id.lblBarcode);
         txtBarcode = (LetterSpacingTextView) findViewById(R.id.lblBarcode);
-        txtScanBy = (EditText) findViewById(R.id.etxtScanBy);
+        txtOriginatedBin = (EditText) findViewById(R.id.etxtScanBy);
         mImageView = (ImageView) findViewById(R.id.imgBarcode);
         btnSubmit = (Button) findViewById(R.id.btnSubmit);
         btnSubmit.setOnClickListener(new View.OnClickListener() {
@@ -111,14 +134,88 @@ public class ActDetails extends Activity {
         populateUiControls(savedInstanceState);
     }
 
+    @Override
+    protected void onResume() {
+        registerReceiver(wifiRec, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        unregisterReceiver(wifiRec);
+        super.onPause();
+    }
+
     private void ButtonClick(View v) {
         switch (v.getId()) {
             case R.id.btnSubmit:
                 //prepare some values to be passed to the database
-                String inputText = txtScanBy.getText().toString();
+                int currentChannel = 0;
+                String inputText = txtOriginatedBin.getText().toString();
+                String endPointLocation = "";
                 if (inputText != null && !inputText.trim().equalsIgnoreCase("")) {
-                    //QueryDb(inputText);
-                    currentItem.setTestDoneBy(inputText);
+
+                    //Initiate a wifi scan - from a broadcast receiver
+                    wifi.startScan();
+                    WifiInfo info = wifi.getConnectionInfo();
+
+                    //Broadcast Receiver
+                    /*registerReceiver(new BroadcastReceiver()
+                    {
+                        @Override
+                        public void onReceive(Context c, Intent intent)
+                        {
+                            results = wifi.getScanResults();
+                            size = results.size();
+                        }
+                    }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+                    try {
+                        if (results.isEmpty()) {
+                            Log.e("Unreported Error Occured:","ScanResults did not yield any result"); // for testing purposes
+                        }
+
+                        for (ScanResult res : results) {
+                            //checking that the currently connected BSSID is one of ours
+                            if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE2S)) {
+                                //check that we have a frequency connected
+                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                    endPointLocation = "the2s";
+                                }
+                            }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_AMAZONDISPATCH)) {
+                                //check that we have a frequency connected
+                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                    endPointLocation = "AmazonDispatch";
+                                }
+                            }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_BACKSTOCK8)) {
+                                //check that we have a frequency connected
+                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                    endPointLocation = "BackStock8";
+                                }
+                            }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE4S)) {
+                                //check that we have a frequency connected
+                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                    endPointLocation = "the4s";
+                                }
+                            } else {
+                                //Then it's not one of ours
+                                currentChannel = res.frequency; // store frequency on channel for review and testing purposes only
+                                endPointLocation = "Undetermined";
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        //log
+                    }*/
+
+                    currentItem.setBssId(info.getBSSID());
+                    currentItem.setChannel(currentChannel);        //  ******************************** CHECK THIS VALUE   *************************
+                    currentItem.setOriginatedBin(inputText);
+                    currentItem.setEndPointLocation(endPointLocation);
                     wserverPost qryTask = new wserverPost();
                     qryTask.execute(currentItem);
                 }
@@ -138,8 +235,8 @@ public class ActDetails extends Activity {
     private ScanTest QueryDb() {
         ScanTest scanPersisted = null;
         //String _uri = "http://192.168.10.2:8080/com.lebel.restsample/api/v1/scans/postscan"; //***
-        //String _uri = "http://192.168.0.100:8080/warehouse.support/api/v1/scans/postscan";
-        String _uri = "http://192.168.10.248:9080/warehouse.support/api/v1/scans/postscan";	//***
+        String _uri = "http://192.168.10.2:8080/warehouse.support/api/v1/scans/postscan";
+        //String _uri = "http://192.168.10.248:9080/warehouse.support/api/v1/scans/postscan";	//***
         try {
             URL serviceUrl = new URL(_uri);
             HttpURLConnection conn = (HttpURLConnection) serviceUrl.openConnection();
@@ -209,7 +306,7 @@ public class ActDetails extends Activity {
         TextView lblOnHand = (TextView) findViewById(R.id.lblOnHand);
         TextView lblPrice = (TextView) findViewById(R.id.lblPrice);
         TextView lblTime = (TextView) findViewById(R.id.lblTime);
-        TextView lblScanBy = (TextView) findViewById(R.id.lblScanBy);
+        TextView lblOriginatedBin = (TextView) findViewById(R.id.lblOriginatedBin);
 
         TextView txtShortDesc = (TextView) findViewById(R.id.txtvShortDesc);
         TextView txtISBN = (TextView) findViewById(R.id.txtvISBN);
@@ -225,7 +322,7 @@ public class ActDetails extends Activity {
         lblFormat.setText("Format:") ; lblBinNo.setText("Bin Number:");
         lblOutOfStock.setText("Out of Stock:") ; lblOnHand.setText("Stock On Hand:");
         lblPrice.setText("Price:") ; lblTime.setText("Time Elapsed:");
-        lblScanBy.setText("Test Performed By:");
+        lblOriginatedBin.setText("Originated Bin:");
         txtShortDesc.setText(prod.getShortDescription()) ; txtISBN.setText(prod.getBarcode());
         txtFormat.setText(prod.getFormat()) ; txtBinNo.setText(prod.getBinNo());
         txtOutOfStock.setText(String.format("%s", prod.getOutOfStock()));
@@ -278,32 +375,135 @@ public class ActDetails extends Activity {
         if (hasBcRan == false) {
             codeImageHandler.obtainMessage(MSG_BCODE_STARTING).sendToTarget();
             if (bcRunCount == 0) { bcRunCount ++; }
-            //com.google.zxing.Writer c9 = new Code128Writer();
-            com.google.zxing.oned.EAN13Writer ean = new com.google.zxing.oned.EAN13Writer();
-            try {
-                //BitMatrix bm = c9.encode(data,BarcodeFormat.CODE_128,380, 168);
-                BitMatrix bm = ean.encode(data, BarcodeFormat.EAN_13, 360, 108);
-                //mBitmap = Bitmap.createBitmap(380, 168, Config.ARGB_8888);
-                mBitmap = Bitmap.createBitmap(360, 108, Config.ARGB_8888);
 
-                for (int i = 0; i < 360; i++) {
-                    for (int j = 0; j < 108; j++) {
+            switch (data.length()) {
+                case 12:    //UPC-A
+                    com.google.zxing.oned.UPCAWriter upc = new com.google.zxing.oned.UPCAWriter();
+                    try {
+                        BitMatrix bm = upc.encode(data, BarcodeFormat.UPC_A, 360, 108);
+                        mBitmap = Bitmap.createBitmap(360, 108, Config.ARGB_8888);
+                        for (int i = 0; i < 360; i++) {
+                            for (int j = 0; j < 108; j++) {
 
-                        mBitmap.setPixel(i, j, bm.get(i, j) ? Color.BLACK : Color.WHITE);
+                                mBitmap.setPixel(i, j, bm.get(i, j) ? Color.BLACK : Color.WHITE);
+                            }
+                        }
+                    } catch (WriterException e) {
+                        e.printStackTrace();
                     }
-                }
-            } catch (WriterException e) {
-                e.printStackTrace();
+                    break;
+                case 8:     //EAN-8
+                    com.google.zxing.oned.EAN8Writer ean8 = new com.google.zxing.oned.EAN8Writer();
+                    try {
+                        BitMatrix bm = ean8.encode(data, BarcodeFormat.EAN_8, 360, 108);
+                        mBitmap = Bitmap.createBitmap(360, 108, Config.ARGB_8888);
+                        for (int i = 0; i < 360; i++) {
+                            for (int j = 0; j < 108; j++) {
+
+                                mBitmap.setPixel(i, j, bm.get(i, j) ? Color.BLACK : Color.WHITE);
+                            }
+                        }
+                    } catch (WriterException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case 14:    //UPC-14
+                    //BitMatrix bm = c9.encode(data,BarcodeFormat.CODE_128,380, 168);
+                    com.google.zxing.oned.ITFWriter itf = new com.google.zxing.oned.ITFWriter();
+                    try {
+                        //BitMatrix bm = c9.encode(data,BarcodeFormat.CODE_128,380, 168);
+                        BitMatrix bm = itf.encode(data, BarcodeFormat.ITF, 360, 108);
+                        mBitmap = Bitmap.createBitmap(360, 108, Config.ARGB_8888);
+                        for (int i = 0; i < 360; i++) {
+                            for (int j = 0; j < 108; j++) {
+
+                                mBitmap.setPixel(i, j, bm.get(i, j) ? Color.BLACK : Color.WHITE);
+                            }
+                        }
+                    } catch (WriterException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case 13:    //EAN-13
+                    com.google.zxing.oned.EAN13Writer ean13 = new com.google.zxing.oned.EAN13Writer();
+                    try {
+                        BitMatrix bm = ean13.encode(data, BarcodeFormat.EAN_13, 360, 108);
+                        mBitmap = Bitmap.createBitmap(360, 108, Config.ARGB_8888);
+                        for (int i = 0; i < 360; i++) {
+                            for (int j = 0; j < 108; j++) {
+
+                                mBitmap.setPixel(i, j, bm.get(i, j) ? Color.BLACK : Color.WHITE);
+                            }
+                        }
+                    } catch (WriterException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                default:    //Error - throw dead kittens
+                    WriterException ex = new WriterException();
+                    ex.printStackTrace();
+                    throw new RuntimeException(ex.getMessage());
             }
+
             if (mBitmap != null) {
                 mImageView.setImageBitmap(mBitmap);
                 //mImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 //txtBarcode.setText(data);
                 txtBarcode.setLetterSpacing(31);
                 txtBarcode.setText(data);
+            }else { //defaults to the local resources
+                mImageView.setImageResource(R.drawable.barcode_ean13);
             }
 
             codeImageHandler.obtainMessage(MSG_DONE).sendToTarget();
+        }
+    }
+
+    @Override
+    public void SignalLevelChanged(WifiStatus status) {
+        //handle WIFI Signal Strength Changed here
+    }
+
+    class WifiReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            results = new ArrayList<ScanResult>();
+            results = wifi.getScanResults();
+            size = results.size();
+            if (!results.isEmpty()){
+                for (ScanResult res : results) {
+                    //checking that the currently connected BSSID is one of ours
+                    if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE2S)) {
+                        //check that we have a frequency connected
+                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                            endPointLocation = "the2s";
+                        }
+                    }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_AMAZONDISPATCH)) {
+                        //check that we have a frequency connected
+                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                            endPointLocation = "AmazonDispatch";
+                        }
+                    }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_BACKSTOCK8)) {
+                        //check that we have a frequency connected
+                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                            endPointLocation = "BackStock8";
+                        }
+                    }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE4S)) {
+                        //check that we have a frequency connected
+                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                            endPointLocation = "the4s";
+                        }
+                    } else {
+                        //Then it's not one of ours
+                        currentChannel = res.frequency; // store frequency on channel for review and testing purposes only
+                        endPointLocation = "Undetermined";
+                    }
+                }
+            }
         }
     }
 
@@ -328,7 +528,7 @@ public class ActDetails extends Activity {
                 builder.setMessage(mMsg)
                         .setPositiveButton(R.string.but_ok, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                txtScanBy.setText("");
+                                txtOriginatedBin.setText("");
                                 if (btnSubmit.isEnabled()) btnSubmit.setEnabled(false);
                             }
                         });

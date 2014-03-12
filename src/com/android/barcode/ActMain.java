@@ -9,6 +9,8 @@ import java.net.URLConnection;
 import java.util.*;
 
 import com.proper.TestDeux.ActDetails;
+import com.proper.TestDeux.IWifiMangerStatesMonitor;
+import com.proper.TestDeux.WifiStatus;
 import com.proper.TestDeux.data.Product;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -59,7 +61,7 @@ import com.proper.TestDeux.R;
 /**
  * Created by Lebel on 13/02/14.
  */
-public class ActMain extends Activity {
+public class ActMain extends Activity implements IWifiMangerStatesMonitor {
     public static final int KEY_SCAN = 111;
     public static final int KEY_F1 = 112;
     public static final int KEY_F2 = 113;
@@ -265,6 +267,11 @@ public class ActMain extends Activity {
             }
 
         };
+    }
+
+    @Override
+    public void SignalLevelChanged(WifiStatus status) {
+        //handle WIFI Signal Strength Changed here
     }
 
     class MyTask extends TimerTask
@@ -663,8 +670,10 @@ public class ActMain extends Activity {
                 // Go with AsyncTask instead
                 if (s != null && !s.toString().equalsIgnoreCase("")) {
                     int acceptable[] = {8,12,13,14};
+                    String paddedEAN = "";
                     String eanCode = s.toString().trim();
                     if (eanCode.length() > 0 && !(Arrays.binarySearch(acceptable, eanCode.length()) == -1)) {
+
                         actionString = new String[] {String.format("%s", ACTION_GETSINGLEPRODUCT), eanCode};
                         ArrayList<String> inputList = new ArrayList<String>();
                         inputList.add(String.format("%s", ACTION_GETSINGLEPRODUCT));
@@ -926,6 +935,7 @@ public class ActMain extends Activity {
 
     private class WebServiceTask extends AsyncTask<String[], Void, List<Product>>{
         protected ProgressDialog xDialog;
+        private String originalEAN = "";
 
         @Override
         protected List<Product> doInBackground(String[]... argument) {
@@ -936,16 +946,25 @@ public class ActMain extends Activity {
             String act = argument[0][0].toString().trim();
             int thisAction = Integer.parseInt(act.trim());
             String thisParam = String.format("%s", (argument[0][1]==null?"":argument[0][1]));
+            originalEAN = thisParam;
             //int recordsFound = 0; //something went wrong, if this value doesn't change
             //int taskLoad = 0;
             XmlPullParser receivedData = null;
 
+            //Insert padding on condition
+            if (thisParam.length() == 12) {
+                thisParam = "0" + thisParam;
+            }
+            if (thisParam.length() == 14) {
+                thisParam = thisParam.substring(1);
+            }
+
             if (thisAction == 2 || thisAction == 3) {
 
                 // **************************	BEGIN	tryDownloadingData	************************************
-                //String serviceUrl = "http://192.168.0.100:8080/warehouse.support/api/v1/product";
+                String serviceUrl = "http://192.168.10.2:8080/warehouse.support/api/v1/product";
                 //String serviceUrl = "http://192.168.10.248:9080/com.lebel.restsample/api/v1/product";
-                String serviceUrl = "http://192.168.10.248:9080/warehouse.support/api/v1/product";
+                //String serviceUrl = "http://192.168.10.248:9080/warehouse.support/api/v1/product";
                 final String thisLogTag = "tryDownloadingData";
 
                 switch (thisAction) {
@@ -1082,7 +1101,8 @@ public class ActMain extends Activity {
                     if(xDialog != null && xDialog.isShowing()){ xDialog.dismiss(); }
 
                     Intent i = new Intent(ActMain.this, ActDetails.class);
-                    i.putExtra("SCANDATA_EXTRA", productList.get(0).getBarcode());
+                    //i.putExtra("SCANDATA_EXTRA", productList.get(0).getBarcode());
+                    i.putExtra("SCANDATA_EXTRA", originalEAN);
                     i.putExtra("TIME_EXTRA", elapseTime);
                     i.putExtra("ACTION_EXTRA", ACTION_GETSINGLEPRODUCT);
                     i.putExtra("PRODUCT_EXTRA", productList.get(0));
@@ -1124,4 +1144,5 @@ public class ActMain extends Activity {
         }
 
     }
+
 }
