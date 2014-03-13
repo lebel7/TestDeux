@@ -8,6 +8,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.*;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import com.proper.TestDeux.ActDetails;
 import com.proper.TestDeux.IWifiMangerStatesMonitor;
 import com.proper.TestDeux.WifiStatus;
@@ -223,7 +228,12 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     else{
                         mReception.setText(buff);
                     }
-                    soundPool.play(soundId, 1, 1, 0, 0, 1);
+                    AudioManager audioMgr = (AudioManager) getSystemService(AUDIO_SERVICE);
+                    float volumeLow = audioMgr.getStreamVolume(AudioManager.STREAM_SYSTEM);
+                    float volumeLevel = volumeLow / audioMgr.getStreamMaxVolume(AudioManager.STREAM_SYSTEM);
+                    //soundPool.play(soundId, 1, 1, 0, 0, 1);
+                    //float volumeLevel = Float.parseFloat("0.3");
+                    soundPool.play(soundId, volumeLevel, volumeLevel, 0, 0, 1);
                     key_start = true;
                     scan.setEnabled(true);
                     retrig_timer.cancel();
@@ -267,6 +277,28 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
             }
 
         };
+
+        //Handle Wifi Connectivity
+        ConnectivityManager connManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        if (!networkInfo.isConnected()) {
+            final WifiManager wifiManager = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+            // setup a wifi configuration to our chosen network
+            WifiConfiguration wc = new WifiConfiguration();
+            wc.SSID = getResources().getString(R.string.ssid);
+            wc.preSharedKey = getResources().getString(R.string.password);
+            wc.status = WifiConfiguration.Status.ENABLED;
+            wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+            wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+            wc.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+            wc.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+            wc.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+            wc.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+            // connect to and enable the connection
+            int netId = wifiManager.addNetwork(wc);
+            wifiManager.enableNetwork(netId, true);
+            wifiManager.setWifiEnabled(true);
+        }
     }
 
     @Override
@@ -701,6 +733,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                 try {
                     if(key_start == true)
                     {
+                        mReception.requestFocus();
                         if(Powered == false)
                         {
                             Powered = true;
@@ -747,6 +780,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     try {
                         if(key_start == true)
                         {
+                            mReception.requestFocus();
                             if(Powered == false)
                             {
                                 Powered = true;
@@ -779,6 +813,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     try {
                         if(key_start == true)
                         {
+                            mReception.requestFocus();
                             if(Powered == false)
                             {
                                 Powered = true;
@@ -804,6 +839,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     try {
                         if(key_start == true)
                         {
+                            mReception.requestFocus();
                             if(Powered == false)
                             {
                                 Powered = true;
@@ -829,6 +865,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     try {
                         if(key_start == true)
                         {
+                            mReception.requestFocus();
                             if(Powered == false)
                             {
                                 Powered = true;
@@ -853,6 +890,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     try {
                         if(key_start == true)
                         {
+                            mReception.requestFocus();
                             if(Powered == false)
                             {
                                 Powered = true;
@@ -877,6 +915,7 @@ public class ActMain extends Activity implements IWifiMangerStatesMonitor {
                     try {
                         if(key_start == true)
                         {
+                            mReception.requestFocus();
                             if(Powered == false)
                             {
                                 Powered = true;

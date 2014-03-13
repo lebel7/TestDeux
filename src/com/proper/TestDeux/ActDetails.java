@@ -49,9 +49,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-//import com.proper.appdeux.data.Product;
-//import com.proper.appdeux.data.ScanTest;
-
 
 /**
  * Created by Lebel on 13/02/14.
@@ -74,7 +71,7 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
     private int bcRunCount = 0;
     private ScanTest recentlySavedScan = null;
     private int size = 0;
-    private  int currentChannel = 0;
+    private int currentChannel = 0;
     private String endPointLocation = "";
     private List<ScanResult> results;
     private WifiManager wifi;
@@ -89,9 +86,6 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.lyt_details);
 
-        wifi = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
-        wifiRec = new WifiReceiver();
-        registerReceiver(wifiRec, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         startTime = new Date().getTime();
         //txtBarcode = (TextView) findViewById(R.id.lblBarcode);
         txtBarcode = (LetterSpacingTextView) findViewById(R.id.lblBarcode);
@@ -132,6 +126,10 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
 
         };
         populateUiControls(savedInstanceState);
+        wifi = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+        wifiRec = new WifiReceiver();
+        this.registerReceiver(wifiRec, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        wifi.startScan();
     }
 
     @Override
@@ -156,8 +154,8 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
                 if (inputText != null && !inputText.trim().equalsIgnoreCase("")) {
 
                     //Initiate a wifi scan - from a broadcast receiver
-                    wifi.startScan();
                     WifiInfo info = wifi.getConnectionInfo();
+                    wifi.startScan();
 
                     //Broadcast Receiver
                     /*registerReceiver(new BroadcastReceiver()
@@ -168,7 +166,7 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
                             results = wifi.getScanResults();
                             size = results.size();
                         }
-                    }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+                    }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));*/
 
                     try {
                         if (results.isEmpty()) {
@@ -177,40 +175,42 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
 
                         for (ScanResult res : results) {
                             //checking that the currently connected BSSID is one of ours
-                            if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE2S)) {
-                                //check that we have a frequency connected
-                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                                    endPointLocation = "the2s";
+                            if (info.getBSSID().equalsIgnoreCase(res.BSSID)) {
+                                if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE2S)) {
+                                    //check that we have a frequency connected
+                                    if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                        currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                        endPointLocation = "the2s";
+                                    }
+                                }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_AMAZONDISPATCH)) {
+                                    //check that we have a frequency connected
+                                    if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                        currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                        endPointLocation = "AmazonDispatch";
+                                    }
+                                }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_BACKSTOCK8)) {
+                                    //check that we have a frequency connected
+                                    if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                        currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                        endPointLocation = "BackStock8";
+                                    }
+                                }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE4S)) {
+                                    //check that we have a frequency connected
+                                    if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
+                                        currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
+                                        endPointLocation = "the4s";
+                                    }
+                                } else {
+                                    //Then it's not one of ours
+                                    currentChannel = res.frequency; // store frequency on channel for review and testing purposes only
+                                    endPointLocation = "Undetermined";
                                 }
-                            }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_AMAZONDISPATCH)) {
-                                //check that we have a frequency connected
-                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                                    endPointLocation = "AmazonDispatch";
-                                }
-                            }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_BACKSTOCK8)) {
-                                //check that we have a frequency connected
-                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                                    endPointLocation = "BackStock8";
-                                }
-                            }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE4S)) {
-                                //check that we have a frequency connected
-                                if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                                    currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                                    endPointLocation = "the4s";
-                                }
-                            } else {
-                                //Then it's not one of ours
-                                currentChannel = res.frequency; // store frequency on channel for review and testing purposes only
-                                endPointLocation = "Undetermined";
                             }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                         //log
-                    }*/
+                    }
 
                     currentItem.setBssId(info.getBSSID());
                     currentItem.setChannel(currentChannel);        //  ******************************** CHECK THIS VALUE   *************************
@@ -469,38 +469,43 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
         public void onReceive(Context context, Intent intent) {
             results = new ArrayList<ScanResult>();
             results = wifi.getScanResults();
+            WifiInfo info = wifi.getConnectionInfo();
             size = results.size();
             if (!results.isEmpty()){
-                for (ScanResult res : results) {
+                for (int i = 0; i < results.size(); i++) {
+                    //for (ScanResult res : results) {
                     //checking that the currently connected BSSID is one of ours
-                    if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE2S)) {
-                        //check that we have a frequency connected
-                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                            endPointLocation = "the2s";
+                    if (info.getBSSID().equalsIgnoreCase(results.get(i).BSSID)) {
+
+                        if (results.get(i).BSSID.equalsIgnoreCase(ENDPOINT_THE2S)) {
+                            //check that we have a frequency connected
+                            if (!(Arrays.binarySearch(channelsFrequency, results.get(i).frequency) == -1)) {
+                                currentChannel = Arrays.binarySearch(channelsFrequency, results.get(i).frequency);
+                                endPointLocation = "the2s";
+                            }
+                        }else if (results.get(i).BSSID.equalsIgnoreCase(ENDPOINT_AMAZONDISPATCH)) {
+                            //check that we have a frequency connected
+                            if (!(Arrays.binarySearch(channelsFrequency, results.get(i).frequency) == -1)) {
+                                currentChannel = Arrays.binarySearch(channelsFrequency, results.get(i).frequency);
+                                endPointLocation = "AmazonDispatch";
+                            }
+                        }else if (results.get(i).BSSID.equalsIgnoreCase(ENDPOINT_BACKSTOCK8)) {
+                            //check that we have a frequency connected
+                            if (!(Arrays.binarySearch(channelsFrequency, results.get(i).frequency) == -1)) {
+                                currentChannel = Arrays.binarySearch(channelsFrequency, results.get(i).frequency);
+                                endPointLocation = "BackStock8";
+                            }
+                        }else if (results.get(i).BSSID.equalsIgnoreCase(ENDPOINT_THE4S)) {
+                            //check that we have a frequency connected
+                            if (!(Arrays.binarySearch(channelsFrequency, results.get(i).frequency) == -1)) {
+                                currentChannel = Arrays.binarySearch(channelsFrequency, results.get(i).frequency);
+                                endPointLocation = "the4s";
+                            }
+                        } else {
+                            //Then it's not one of ours
+                            currentChannel = results.get(i).frequency; // store frequency on channel for review and testing purposes only
+                            endPointLocation = "Undetermined";
                         }
-                    }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_AMAZONDISPATCH)) {
-                        //check that we have a frequency connected
-                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                            endPointLocation = "AmazonDispatch";
-                        }
-                    }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_BACKSTOCK8)) {
-                        //check that we have a frequency connected
-                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                            endPointLocation = "BackStock8";
-                        }
-                    }else if (res.BSSID.equalsIgnoreCase(ENDPOINT_THE4S)) {
-                        //check that we have a frequency connected
-                        if (!(Arrays.binarySearch(channelsFrequency, res.frequency) == -1)) {
-                            currentChannel = Arrays.binarySearch(channelsFrequency, res.frequency);
-                            endPointLocation = "the4s";
-                        }
-                    } else {
-                        //Then it's not one of ours
-                        currentChannel = res.frequency; // store frequency on channel for review and testing purposes only
-                        endPointLocation = "Undetermined";
                     }
                 }
             }

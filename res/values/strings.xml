@@ -25,6 +25,10 @@
     <string name="image_description">shows image of the barcode</string>
     <string name="hint_enterbin">Enter BinNo Here</string>
 
+    <!--    Security    -->
+    <string name="ssid">\"wifi_zz\"</string>
+    <string name="password">\"propermus1c\"</string>
+
     <string name="DEV_OPEN_ERR">Device open failed！Software will quit！</string>
     <string name="DIA_ALERT">Warning！</string>
     <string name="DIA_CHECK">Confirm</string>
