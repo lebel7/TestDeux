@@ -235,8 +235,8 @@ public class ActDetails extends Activity implements IWifiMangerStatesMonitor {
     private ScanTest QueryDb() {
         ScanTest scanPersisted = null;
         //String _uri = "http://192.168.10.2:8080/com.lebel.restsample/api/v1/scans/postscan"; //***
-        String _uri = "http://192.168.10.2:8080/warehouse.support/api/v1/scans/postscan";
-        //String _uri = "http://192.168.10.248:9080/warehouse.support/api/v1/scans/postscan";	//***
+        //String _uri = "http://192.168.10.2:8080/warehouse.support/api/v1/scans/postscan";
+        String _uri = "http://192.168.10.248:9080/warehouse.support/api/v1/scans/postscan";	//***
         try {
             URL serviceUrl = new URL(_uri);
             HttpURLConnection conn = (HttpURLConnection) serviceUrl.openConnection();
